@@ -1104,16 +1104,24 @@ ReadFilePreOperation(
 	ULONG memoryTag = '1gaT';
 
 	if (FLT_IS_FS_FILTER_OPERATION(Data))
-	{
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
-	}
-	
+	if (FltObjects->FileObject == NULL || Data == NULL)
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
+	if (Data->Iopb->TargetFileObject == NULL || Data->Iopb->MajorFunction != IRP_MJ_READ)
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
+
 	processName.Length = 0;
 	processName.MaximumLength = NTSTRSAFE_UNICODE_STRING_MAX_CCH * sizeof(WCHAR);
 	processName.Buffer = ExAllocatePoolWithTag(NonPagedPool, processName.MaximumLength, memoryTag);
 	if (processName.Buffer == NULL)
 	{
 		DbgPrint("CRDriver: ERROR: Can't allocate memory for processName!");
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
+	}
+
+	if (processName.Length == 0)
+	{
+		ExFreePoolWithTag(processName.Buffer, memoryTag);
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 	}
 
@@ -1128,12 +1136,13 @@ ReadFilePreOperation(
 
 	if (!NT_SUCCESS(checkAccessRule('r', processName, Data->Iopb->TargetFileObject->FileName)))
 	{
-		DbgPrint("CRDriver: READ ACCESS DENIED: %ws TO %ws\n", processName.Buffer, Data->Iopb->TargetFileObject->FileName.Buffer);
+		DbgPrint("CRDriver: READ ACCESS DENIED: (%d %d) %ws TO (%d %d) %ws\n", processName.Length, processName.MaximumLength, processName.Buffer, Data->Iopb->TargetFileObject->FileName.Length, Data->Iopb->TargetFileObject->FileName.MaximumLength, Data->Iopb->TargetFileObject->FileName.Buffer);
 		Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+		ExFreePoolWithTag(processName.Buffer, memoryTag);
 		return FLT_PREOP_COMPLETE;
 	} else
 	{
-		DbgPrint("CRDriver: READ ACCESS GRANTED: %ws TO %ws\n", processName.Buffer, Data->Iopb->TargetFileObject->FileName.Buffer);
+		DbgPrint("CRDriver: READ ACCESS GRANTED: (%d %d) %ws TO (%d %d) %ws\n", processName.Length, processName.MaximumLength, processName.Buffer, Data->Iopb->TargetFileObject->FileName.Length, Data->Iopb->TargetFileObject->FileName.MaximumLength, Data->Iopb->TargetFileObject->FileName.Buffer);
 	}
 
 	ExFreePoolWithTag(processName.Buffer, memoryTag);
@@ -1156,9 +1165,11 @@ WriteFilePreOperation(
 	ULONG memoryTag = '6gaT';
 
 	if (FLT_IS_FS_FILTER_OPERATION(Data))
-	{
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
-	}
+	if (FltObjects->FileObject == NULL || Data == NULL)
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
+	if (Data->Iopb->TargetFileObject == NULL || Data->Iopb->MajorFunction != IRP_MJ_WRITE)
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 
 	processName.Length = 0;
 	processName.MaximumLength = NTSTRSAFE_UNICODE_STRING_MAX_CCH * sizeof(WCHAR);
@@ -1166,6 +1177,12 @@ WriteFilePreOperation(
 	if (processName.Buffer == NULL)
 	{
 		DbgPrint("CRDriver: ERROR: Can't allocate memory for processName!");
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
+	}
+
+	if (processName.Length == 0)
+	{
+		ExFreePoolWithTag(processName.Buffer, memoryTag);
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 	}
 
@@ -1180,13 +1197,13 @@ WriteFilePreOperation(
 
 	if (!NT_SUCCESS(checkAccessRule('w', processName, Data->Iopb->TargetFileObject->FileName)))
 	{
-		DbgPrint("CRDriver: WRITE ACCESS DENIED: %ws TO %ws\n", processName.Buffer, Data->Iopb->TargetFileObject->FileName.Buffer);
+		DbgPrint("CRDriver: WRITE ACCESS DENIED: (%d %d) %ws TO (%d %d) %ws\n", processName.Length, processName.MaximumLength, processName.Buffer, Data->Iopb->TargetFileObject->FileName.Length, Data->Iopb->TargetFileObject->FileName.MaximumLength, Data->Iopb->TargetFileObject->FileName.Buffer);
 		Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+		ExFreePoolWithTag(processName.Buffer, memoryTag);
 		return FLT_PREOP_COMPLETE;
-	}
-	else
+	} else
 	{
-		DbgPrint("CRDriver: WRITE ACCESS GRANTED: %ws TO %ws\n", processName.Buffer, Data->Iopb->TargetFileObject->FileName.Buffer);
+		DbgPrint("CRDriver: WRITE ACCESS GRANTED: (%d %d) %ws TO (%d %d) %ws\n", processName.Length, processName.MaximumLength, processName.Buffer, Data->Iopb->TargetFileObject->FileName.Length, Data->Iopb->TargetFileObject->FileName.MaximumLength, Data->Iopb->TargetFileObject->FileName.Buffer);
 	}
 
 	ExFreePoolWithTag(processName.Buffer, memoryTag);
