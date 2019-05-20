@@ -1119,17 +1119,17 @@ ReadFilePreOperation(
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 	}
 
-	if (processName.Length == 0)
-	{
-		ExFreePoolWithTag(processName.Buffer, memoryTag);
-		return FLT_PREOP_SUCCESS_NO_CALLBACK;
-	}
-
 	RtlZeroMemory(processName.Buffer, processName.MaximumLength);
 	status = GetProcessImageName(&processName);
 	if (!NT_SUCCESS(status))
 	{
 		DbgPrint("CRDriver: ERROR: GetProcessImageName\n");
+		ExFreePoolWithTag(processName.Buffer, memoryTag);
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
+	}
+
+	if (processName.Length == 0)
+	{
 		ExFreePoolWithTag(processName.Buffer, memoryTag);
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 	}
@@ -1180,17 +1180,17 @@ WriteFilePreOperation(
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 	}
 
-	if (processName.Length == 0)
-	{
-		ExFreePoolWithTag(processName.Buffer, memoryTag);
-		return FLT_PREOP_SUCCESS_NO_CALLBACK;
-	}
-
 	RtlZeroMemory(processName.Buffer, processName.MaximumLength);
 	status = GetProcessImageName(&processName);
 	if (!NT_SUCCESS(status))
 	{
 		DbgPrint("CRDriver: ERROR: GetProcessImageName\n");
+		ExFreePoolWithTag(processName.Buffer, memoryTag);
+		return FLT_PREOP_SUCCESS_NO_CALLBACK;
+	}
+
+	if (processName.Length == 0)
+	{
 		ExFreePoolWithTag(processName.Buffer, memoryTag);
 		return FLT_PREOP_SUCCESS_NO_CALLBACK;
 	}
