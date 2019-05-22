@@ -771,13 +771,24 @@ iter:
 		DbgPrint("CRDebug: %d %d currentProc: %ws\n", currentProcess.Length, currentProcess.MaximumLength, currentProcess.Buffer);
 		DbgPrint("CRDebug: %d %d tmpProcessName: %ws\n", tmpProcessName.Length, currentProcess.MaximumLength, tmpProcessName.Buffer);
 		DbgPrint("CRDebug: %d %d tmpObjectName: %ws\n", tmpObjectFileName.Length, tmpObjectFileName.MaximumLength, tmpObjectFileName.Buffer);
+		DbgPrint("CRDebug: operation=%c, foundReadRule=%d, foundWriteRule=%d\n", operation, foundReadRule, foundWriteRule);
 	}
 
+	// —равниваем строки вручную, метод RtlEqualUnicodeString отрабатывал как скотина.
+	int equal_1 = TRUE, equal_2 = TRUE, tmplength;
+	tmplength = currentProcess.Length < tmpProcessName.Length ? currentProcess.Length : tmpProcessName.Length;
+	for (int i = 0; i < tmplength / sizeof(WCHAR); i++)
+		if (currentProcess.Buffer[i] != tmpProcessName.Buffer[i]) { DbgPrint("CRDebug: NOTEQUAL1: [%d], %wc AND %wc\n", i, currentProcess.Buffer[i], tmpProcessName.Buffer[i]); equal_1 = FALSE; break; }
+	tmplength = currentObjectFileName.Length < tmpObjectFileName.Length ? currentObjectFileName.Length : tmpObjectFileName.Length;
+	for (int i = 0; i < tmplength / sizeof(WCHAR); i++)
+		if (currentObjectFileName.Buffer[i] != tmpObjectFileName.Buffer[i]) { DbgPrint("CRDebug: NOTEQUAL2: [%d], %wc AND %wc\n", i, currentObjectFileName.Buffer[i], tmpObjectFileName.Buffer[i]); equal_2 = FALSE; break; }
+	//  онец сравнени€.
+
 	if (foundOperations // ќсновна€ проверка на доступ после парсинга.
-		&& RtlEqualUnicodeString(&currentProcess, &tmpProcessName, TRUE)
-		&& RtlEqualUnicodeString(&currentObjectFileName, &tmpObjectFileName, TRUE))
+		&& equal_1  // RtlEqualUnicodeString(&currentProcess, &tmpProcessName, TRUE)
+		&& equal_2) // RtlEqualUnicodeString(&currentObjectFileName, &tmpObjectFileName, TRUE))
 	{
-		//DbgPrint("CRDebug: LOL, %c, foundReadRule=%d, foundWriteRule=%d\n", operation, foundReadRule, foundWriteRule);
+		DbgPrint("CRDebug: LOL, %c, foundReadRule=%d, foundWriteRule=%d\n", operation, foundReadRule, foundWriteRule);
 		if (operation == 'r' && foundReadRule) goto status_success;
 		if (operation == 'w' && foundWriteRule) goto status_success;
 
